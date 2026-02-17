@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from .logging_utils import setup_logging
 from .provenance import collect_versions, write_provenance
 from .qc.fastq_qc import run_fastp
 from .report.render import html_to_pdf, render_html
+from .vcf.clinvar import ClinVarStreamMatcher
 from .vcf.io import iter_variants
 from .vcf.rules import low_confidence
 
@@ -25,6 +27,19 @@ log = logging.getLogger(__name__)
 def _read_css(template_dir: Path) -> str:
     css_path = template_dir / "style.css"
     return css_path.read_text(encoding="utf-8") if css_path.exists() else ""
+
+
+def _is_clinvar_pathogenic(clnsig: str) -> bool:
+    if not clnsig:
+        return False
+    normalized = clnsig.replace(" ", "_")
+    labels = [p for p in re.split(r"[|,;/]+", normalized) if p]
+    accepted = {"Pathogenic", "Likely_pathogenic", "Pathogenic/Likely_pathogenic"}
+    if any(lbl in accepted for lbl in labels):
+        return True
+    if "Pathogenic/Likely_pathogenic" in normalized:
+        return True
+    return False
 
 
 @app.callback()
@@ -39,6 +54,11 @@ def run(
     out_dir: Path = typer.Option(Path("out"), help="Output directory"),
     fastq1: Path | None = typer.Option(None, exists=True, help="FASTQ R1 (optional QC)"),
     fastq2: Path | None = typer.Option(None, exists=True, help="FASTQ R2 (optional QC)"),
+    clinvar_vcf: Path | None = typer.Option(
+        None,
+        exists=True,
+        help="Optional ClinVar VCF.gz for annotation (e.g. clinvar.vcf.gz GRCh38)",
+    ),
 ):
     out_dir.mkdir(parents=True, exist_ok=True)
     versions = collect_versions()
@@ -51,6 +71,7 @@ def run(
 
     important = []
     lowc = []
+    clinvar_matcher = ClinVarStreamMatcher(str(clinvar_vcf)) if clinvar_vcf else None
 
     for v in iter_variants(str(vcf)):
         lc = low_confidence(v)
@@ -69,9 +90,17 @@ def run(
                 }
             )
 
-        clinvar = v.info.get("CLNSIG", "")
-        gene = v.info.get("GENE", "")
-        if str(clinvar) in ("Pathogenic", "Likely_pathogenic"):
+        clinvar = str(v.info.get("CLNSIG", "")).strip()
+        gene = str(v.info.get("GENE", "")).strip()
+        if clinvar_matcher and (not clinvar or not gene):
+            hit = clinvar_matcher.match(v)
+            if hit:
+                if not clinvar:
+                    clinvar = hit.clnsig
+                if not gene:
+                    gene = hit.gene
+
+        if _is_clinvar_pathogenic(clinvar):
             important.append(
                 {
                     "gene": gene,
@@ -94,6 +123,7 @@ def run(
         "assembly": assembly,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "provenance_json": (prov_dir / "tool_versions.json").read_text(encoding="utf-8"),
+        "clinvar_vcf": str(clinvar_vcf) if clinvar_vcf else None,
         "qc": qc,
         "important_variants": important,
         "low_confidence": lowc,
