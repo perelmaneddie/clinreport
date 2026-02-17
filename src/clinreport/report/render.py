@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from weasyprint import HTML
 
 
 def render_html(template_dir: Path, context: dict, out_html: Path) -> None:
@@ -16,4 +15,7 @@ def render_html(template_dir: Path, context: dict, out_html: Path) -> None:
 
 
 def html_to_pdf(html_path: Path, out_pdf: Path) -> None:
+    # Import lazily so HTML-only workflows/tests do not depend on system GTK/Pango libs.
+    from weasyprint import HTML
+
     HTML(filename=str(html_path)).write_pdf(str(out_pdf))
