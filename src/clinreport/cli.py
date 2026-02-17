@@ -103,10 +103,23 @@ def run(
     html_path = out_dir / "report.html"
     pdf_path = out_dir / "report.pdf"
     render_html(template_dir, context, html_path)
-    html_to_pdf(html_path, pdf_path)
+    pdf_error = None
+    try:
+        html_to_pdf(html_path, pdf_path)
+    except Exception as exc:
+        pdf_error = str(exc)
+        log.warning("PDF generation failed; continuing with HTML/JSON outputs. Error: %s", exc)
+
+    if pdf_error:
+        context["pdf_error"] = pdf_error
 
     (out_dir / "report.json").write_text(json.dumps(context, indent=2, default=str), encoding="utf-8")
-    typer.echo(f"Wrote: {pdf_path}")
+    if pdf_error:
+        typer.echo(f"Wrote: {html_path}")
+        typer.echo(f"Wrote: {out_dir / 'report.json'}")
+        typer.echo("PDF not generated due to missing WeasyPrint native dependencies.")
+    else:
+        typer.echo(f"Wrote: {pdf_path}")
 
 
 @app.command()

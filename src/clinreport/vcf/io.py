@@ -35,6 +35,16 @@ def _safe_int(x) -> Optional[int]:
         return None
 
 
+def _sample_format_value(rec, key: str):
+    try:
+        fmt = rec.format(key)
+        if fmt is None or len(fmt) == 0:
+            return None
+        return fmt[0]
+    except Exception:
+        return None
+
+
 def iter_variants(vcf_path: str) -> Iterable[VariantRecord]:
     v = VCF(vcf_path)
     samples = v.samples
@@ -44,7 +54,7 @@ def iter_variants(vcf_path: str) -> Iterable[VariantRecord]:
         alt = rec.ALT[0] if rec.ALT else ""
         flt = rec.FILTER if rec.FILTER is not None else "PASS"
 
-        gt = rec.genotype(0) if samples else None
+        gt = rec.genotypes[0] if samples and getattr(rec, "genotypes", None) else None
         gt_str = "./."
         if gt:
             a, b = gt[0], gt[1]
@@ -52,14 +62,16 @@ def iter_variants(vcf_path: str) -> Iterable[VariantRecord]:
                 sep = "|" if gt[2] else "/"
                 gt_str = f"{a}{sep}{b}"
 
-        dp = _safe_int(rec.format("DP")[0]) if samples else _safe_int(rec.INFO.get("DP"))
-        gq = _safe_int(rec.format("GQ")[0]) if samples else None
+        if samples:
+            dp = _safe_int(_sample_format_value(rec, "DP"))
+            gq = _safe_int(_sample_format_value(rec, "GQ"))
+        else:
+            dp = _safe_int(rec.INFO.get("DP"))
+            gq = None
 
         ad = None
-        try:
-            ad = rec.format("AD")[0] if samples else None
-        except Exception:
-            ad = None
+        if samples:
+            ad = _sample_format_value(rec, "AD")
         ad_ref = _safe_int(ad[0]) if ad is not None and len(ad) > 0 else None
         ad_alt = _safe_int(ad[1]) if ad is not None and len(ad) > 1 else None
 
