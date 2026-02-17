@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Clinical Variant Report</title>
+  <style>{{ css }}</style>
+</head>
+<body>
+  <h1>Clinical Variant Report</h1>
+
+  <h2>Sample</h2>
+  <ul>
+    <li><b>Sample</b>: {{ sample }}</li>
+    <li><b>Reference build</b>: {{ assembly }}</li>
+    <li><b>Generated</b>: {{ generated_at }}</li>
+  </ul>
+
+  <h2>Provenance</h2>
+  <pre>{{ provenance_json }}</pre>
+
+  <h2>Clinically important variants</h2>
+  {% if important_variants|length == 0 %}
+    <p>No variants matched the clinically important rules.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Gene</th><th>Chr:Pos</th><th>Ref&gt;Alt</th><th>GT</th><th>DP</th><th>GQ</th>
+        <th>ClinVar</th><th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in important_variants %}
+      <tr>
+        <td>{{ v.gene }}</td>
+        <td>{{ v.chrom }}:{{ v.pos }}</td>
+        <td>{{ v.ref }}&gt;{{ v.alt }}</td>
+        <td>{{ v.gt }}</td>
+        <td>{{ v.dp }}</td>
+        <td>{{ v.gq }}</td>
+        <td>{{ v.clinvar }}</td>
+        <td>{{ v.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <h2>Low-confidence variants (require manual review)</h2>
+  {% if low_confidence|length == 0 %}
+    <p>None.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Chr:Pos</th><th>Ref&gt;Alt</th><th>GT</th><th>DP</th><th>GQ</th><th>Reasons</th><th>IGV Snapshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in low_confidence %}
+      <tr>
+        <td>{{ v.chrom }}:{{ v.pos }}</td>
+        <td>{{ v.ref }}&gt;{{ v.alt }}</td>
+        <td>{{ v.gt }}</td>
+        <td>{{ v.dp }}</td>
+        <td>{{ v.gq }}</td>
+        <td>{{ v.reasons|join(", ") }}</td>
+        <td>{{ v.snapshot or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <hr/>
+  <p class="disclaimer">
+    Disclaimer: This software produces a computational summary and does not provide a medical diagnosis.
+    All low-confidence variants and any findings must be reviewed and interpreted by qualified personnel.
+  </p>
+</body>
+</html>

@@ -1,0 +1,6 @@
+body { font-family: Arial, sans-serif; font-size: 12px; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+th, td { border: 1px solid #ccc; padding: 6px; vertical-align: top; }
+th { background: #f3f3f3; }
+.disclaimer { color: #444; font-size: 11px; }
+pre { background: #f8f8f8; padding: 8px; border: 1px solid #ddd; overflow-x: auto; }
