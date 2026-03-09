@@ -46,6 +46,31 @@
   </table>
   {% endif %}
 
+  <h2>Variants detected from FASTQ</h2>
+  {% if fastq_detected_variants|length == 0 %}
+    <p>No FASTQ-derived variant calling results were included.</p>
+  {% else %}
+    <p><b>Total FASTQ-detected variants</b>: {{ fastq_detected_variants|length }}</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Chr:Pos</th><th>Ref&gt;Alt</th><th>GT</th><th>DP</th><th>GQ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in fastq_detected_variants %}
+      <tr>
+        <td>{{ v.chrom }}:{{ v.pos }}</td>
+        <td>{{ v.ref }}&gt;{{ v.alt }}</td>
+        <td>{{ v.gt }}</td>
+        <td>{{ v.dp }}</td>
+        <td>{{ v.gq }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
   <h2>Low-confidence variants (require manual review)</h2>
   {% if low_confidence|length == 0 %}
     <p>None.</p>
