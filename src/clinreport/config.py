@@ -24,10 +24,13 @@ class AppSettings(BaseSettings):
     rules: VariantRules = VariantRules()
 
     bcftools_path: str = "bcftools"
+    samtools_path: str = "samtools"
+    minimap2_path: str = "minimap2"
+    tabix_path: str = "tabix"
     fastp_path: str = "fastp"
     igv_sh_path: str = "igv.sh"
 
-    openai_model: str = "gpt-5"
+    openai_model: str = "gpt-5.2"
     openai_timeout_s: int = 120
 
 
